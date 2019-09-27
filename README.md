@@ -3,7 +3,7 @@
 
 https://www.kaggle.com/dumbhead/predicting-bitcoin-price-using-a-neural-network
 
-#Description
+# Description
 I hope to share my attempts at predicting the price of Bitcoin using a neural network. I will be focusing on the 30 minute time frame as larger time frame have less data, and a bigger neural network will often overfit.
 
 A common problem I see in many models is that they often just predict a price that is very close in the previous time period. If look at the distribution of how much the price of Bitcoin fluctuates every 30 minutes, most of the time it is close to zero!
@@ -14,7 +14,7 @@ In addition, the price patterns changes. Price pattern that worked in 2014 may n
 
 Because of the high correlation between HLOC, I only choose to use of them. I found the close was the most effective.
 
-#Interpreting the test set charts:
+# Interpreting the test set charts:
 The EV is calculated cumulatively (adding the percentages gains/loss), multiplicatively (what would happen if you trade with your entire balance), and optimalf (similar to Kelly criterion but for multiclass).
 
 The signal strength represents how strongly the NN thinks the price will go up or down before it makes a trade. Also, the graph shows what happens if the NN only shorts or longs. HODL means buying and holding. This does not include fees.
