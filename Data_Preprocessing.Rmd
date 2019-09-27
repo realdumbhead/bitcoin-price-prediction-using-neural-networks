@@ -1,0 +1,155 @@
+---
+title: "Data Preprocessing Functions"
+output: html_notebook
+---
+
+```{r include=FALSE}
+library(tidyverse)
+library(TTR)
+library(data.table)
+```
+
+```{r}
+##
+addIndicators <- function(data){
+  DTWithInd <- data %>% mutate(
+      RSI = RSI(data[,"Close"]),
+      MACD = MACD(data[,"Close"])[,1],
+      Signal = MACD(data[,"Close"])[,2],
+      BBLower = BBands(data[,c("High", "Low", "Close")])[,1],
+      BBMA = BBands(data[,c("High", "Low", "Close")])[,2],
+      BBUpper = BBands(data[,c("High", "Low", "Close")])[,3],
+      BBpctB = BBands(data[,c("High", "Low", "Close")])[,4],
+      StochFastK = stoch(data[,c("High", "Low", "Close")])[,1],
+      StochFastD = stoch(data[,c("High", "Low", "Close")])[,2],
+      StochSlowD = stoch(data[,c("High", "Low", "Close")])[,3],
+      ADXLP = ADX(data[,c("High", "Low", "Close")])[,1],
+      ADXDLN = ADX(data[,c("High", "Low", "Close")])[,2],
+      ADXDX = ADX(data[,c("High", "Low", "Close")])[,3],
+      ADX = ADX(data[,c("High", "Low", "Close")])[,4],
+      SARStop = SAR(data[,c("High", "Low")]),
+      Volatility = volatility(data[,c("Open", "High", "Low", "Close")]),
+      EMA8 = EMA(data[,"Close"], n = 8),
+      EMA13 = EMA(data[,"Close"], n = 13),
+      EMA21 = EMA(data[,"Close"], n = 21),
+      EMA34 = EMA(data[,"Close"], n = 34),
+      EMA55 = EMA(data[,"Close"], n = 55)
+    )
+  return(DTWithInd %>% as.data.table())
+}
+
+###Indicators that do not oscalliate are divided by price
+addIndicatorsBounded <- function(data){
+  DTWithInd <- data %>% mutate(
+      RSI = RSI(data[,"Close"]),
+      MACD = MACD(data[,"Close"])[,1],
+      Signal = MACD(data[,"Close"])[,2],
+      BBLower = BBands(data[,c("High", "Low", "Close")])[,1],
+      BBMA = BBands(data[,c("High", "Low", "Close")])[,2],
+      BBUpper = BBands(data[,c("High", "Low", "Close")])[,3],
+      BBpctB = BBands(data[,c("High", "Low", "Close")])[,4],
+      StochFastK = stoch(data[,c("High", "Low", "Close")])[,1],
+      StochFastD = stoch(data[,c("High", "Low", "Close")])[,2],
+      StochSlowD = stoch(data[,c("High", "Low", "Close")])[,3],
+      ADXLP = ADX(data[,c("High", "Low", "Close")])[,1],
+      ADXDLN = ADX(data[,c("High", "Low", "Close")])[,2],
+      ADXDX = ADX(data[,c("High", "Low", "Close")])[,3],
+      ADX = ADX(data[,c("High", "Low", "Close")])[,4],
+      SARStop = SAR(data[,c("High", "Low")]),
+      Volatility = volatility(data[,c("Open", "High", "Low", "Close")]),
+      EMA8 = EMA(data[,"Close"], n = 8),
+      EMA13 = EMA(data[,"Close"], n = 13),
+      EMA21 = EMA(data[,"Close"], n = 21),
+      EMA34 = EMA(data[,"Close"], n = 34),
+      EMA55 = EMA(data[,"Close"], n = 55)
+    ) %>% 
+    as.data.table()
+  DTWithInd[,MACD := MACD/Close][
+    ,Signal := Signal/Close][
+    ,BBLower := BBLower/Close][
+    ,BBMA := BBMA/Close][
+    ,BBUpper := BBUpper/Close][
+    ,BBpctB := BBpctB/Close][
+    ,SARStop := SARStop/Close][
+    ,Volatility := Volatility][
+    ,EMA8 := EMA8/Close][
+    ,EMA13 := EMA13/Close][
+    ,EMA21 := EMA21/Close][
+    ,EMA34 := EMA34/Close][
+    ,EMA55 := EMA55/Close]
+  return(DTWithInd)
+}
+
+emptyDT <- function(nrow, ncol){
+  return(data.table(matrix(nrow = nrow, ncol = ncol)))
+}
+
+##add previous prices of n past periods as columns to each row
+##test <- addPastPrices(bitcoin30m, 70, c("Open", "Close", "High", "Low", 1))
+addPastPrices <- function(df, candlesToAdd, columns, skip = 1){
+  data <- df %>% select(columns) %>% as.data.table()
+  length <- nrow(data)
+  originalDFWidth <- ncol(df)
+  colWidth <- length(columns)
+  pastPricesTable <- emptyDT(length, originalDFWidth + candlesToAdd * colWidth)
+  pastPricesTable[,1:originalDFWidth] <- df
+  namesList <- list(rep("", originalDFWidth + candlesToAdd * colWidth))
+  namesList[1:originalDFWidth] <- names(df)
+  for(i in seq(skip, candlesToAdd*skip, skip)){
+    names <- paste0(columns, i)
+    nullRow <- setNames(data.table(matrix(ncol = colWidth, nrow = i)), names)
+    names(data) <- names
+    currentCols <- (1+originalDFWidth+i/skip*colWidth-colWidth):(1+originalDFWidth+i/skip*colWidth-1)
+    pastPricesTable[,currentCols] <- rbind(nullRow, data[1:(length-i)])
+    namesList[currentCols] <- names
+  }
+  names(pastPricesTable) <- unlist(namesList)
+  return(pastPricesTable)
+}
+
+##creates a labeled column of the price one period after
+##dataY <- createRegrY(dataX, c("Close"))
+createRegrY <- function(df, colName){
+  data <- df %>% as.data.table()
+  nullRow <- emptyDT(1, length(colName)) 
+  names(nullRow) <- colName
+  dataY <- rbind(data[2:nrow(data), ..colName], nullRow)
+  names(dataY) <- paste("Future", colName)
+  return(dataY)
+}
+
+## calculates the percentage change between each period
+## closeChange <- percentChange(dataX, "Close")
+## returns m by 1 DT of the percentage change
+percentChange <- function(df, colName){
+  data <- df %>% as.data.table()
+  nullRow <- emptyDT(1, 1)
+  names(nullRow) <- colName
+  length <- nrow(data)
+  return(rbind((data[2:length, ..colName] -
+    data[1:length-1, ..colName]) / data[1:length-1, ..colName], nullRow))
+}
+```
+
+```{r} 
+bitcoin30m <- fread("~/Documents/ta/untitled folder/data/bitcoin30m.csv")
+
+
+dataB30 <- addIndicatorsBounded(bitcoin30m)
+
+dataB30Y <- percentChange(dataB30, "Close")
+
+dataB30CorMat <- cor(dataB30[200:nrow(dataB30),6:ncol(dataB30)])
+
+#plot <- ggplot(closeChange, aes(Close)) + geom_freqpoly(bins = 500) + xlim(-0.3, 0.3) + scale_y_continuous(trans='log10')
+
+p <- plot_ly(
+  x = (bitcoin30m[100:nrow(bitcoin30m),1]/1000) %>% as.matrix() %>% as.POSIXct(origin = "1970-01-01"),
+  y = bitcoin30m[100:nrow(bitcoin30m),"Volatility"],
+  mode = "lines"
+)
+
+save <- bitcoin30m[,c("Time", "Close")] %>% cbind(volatility(bitcoin30m[,c("Open", "High", "Low", "Close")]))
+```
+
+
