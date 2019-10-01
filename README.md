@@ -12,7 +12,7 @@ I decided to tackle this issue by treating the task as a multi-class classificat
 
 In addition, the price patterns changes. Price pattern that worked in 2014 may not work in 2019. Therefore, I retrain the neural network after a certain amount of time frames.
 
-Because of the high correlation between HLOC, I only choose to use of them. I found the close was the most effective.
+Because of the high correlation between HLOC, I only choose to use one of them. I found the close was the most effective.
 
 # Interpreting the test set charts:
 The EV is calculated cumulatively (adding the percentages gains/loss), multiplicatively (what would happen if you trade with your entire balance), and optimalf (similar to Kelly criterion but for multiclass).
